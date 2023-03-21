@@ -1,0 +1,137 @@
+CÓDIGO DE ARDUINO
+
+#include "DHT.h"
+
+#define DHTPIN 2
+
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin (9600);
+  Serial.println("DHTxx test!");
+
+  dht.begin();
+}
+
+void loop() {
+  delay(2000);
+
+  float h = dht.readHumidity();
+
+  float t = dht.readTemperature ();
+
+  float f = dht.readTemperature(true);
+
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  float hif = dht.computeHeatIndex (f, h);
+
+  float hic = dht.computeHeatIndex (t, h, false);
+
+  Serial.print ("Humidity:  ");
+  Serial.print(h);
+  Serial.print("%\t");
+  Serial.print("Temperature:  ");
+  Serial.print(t);
+  Serial.print("  *C  ");
+  Serial.print(f);
+  Serial.print(" *F\t");
+  Serial.print("Heat index:  ");
+  Serial.print(hic);
+  Serial.print("  *C  ");
+  Serial.print(hif);
+  Serial.println("  *F ");
+  }
+  
+  
+  
+  
+  
+  CÓDIGO PROCESSING
+  
+  import de.bezier.data.sql.*;
+import de.bezier.data.sql.mapper.*;
+
+import processing.serial.*; //Puerto Serial en Arduino
+import de.bezier.data.sql.*;  //Puerto con MySQL
+
+MySQL mysql;
+
+Serial puertoSerie; //Variable para puerto Serial
+String val;  //Dato recibidos por el puerto serial de Arduino
+float valorDHT  = 0;  //Variable para almacenar el valor recibido
+float [] temperatura = {40.0};
+
+void setup() {
+  size (530, 300); 
+  puertoSerie = new Serial(this, "COM3", 9600); //Comunicación con Arduino
+  val = "0";
+  String user= "root";
+  String password= "";
+  String dbHost= "localhost:3307";
+  String database= "laboratorio4";
+  mysql= new MySQL(this, dbHost, database, user,password);
+}
+
+void draw() {
+  delay(1000);
+  background(#B1FAF6);  //Fondo
+  fill(0);
+  textSize(23);  //Tamaño de fuente
+  float x = width * 0.1;
+  float y = height *  0.9;
+  float delta = width * 0.8;
+  float w = delta * 0.8;
+  for (float val : temperatura){
+      float h = map(val, 0, 100, 0, height);
+      fill(#5AF752);
+      rect(320, 130, 140, 30);
+      x = x + delta;
+  }
+  
+  while(puertoSerie.available()>0){
+    String buffer = puertoSerie.readString();
+    if(buffer!=null){
+      //println(buffer);
+      fill(#0B0F0B);
+      text("Temperatura: "+buffer +"°C",60,150);
+      if(mysql.connect()){
+        println("conectado");
+        mysql.execute( "INSERT INTO temperatura(temperaturacel, tiempo) VALUES("+buffer+", NOW());" );
+       
+      }
+    }
+    }
+  }
+ 
+ 
+ 
+ 
+ 
+ CÓDIGO MYSQL
+ 
+ 
+ CREATE DATABASE laboratorio4 DEFAULT CHARSET= utf8mb4;
+
+use laboratorio4;
+
+-- Como hacer una tabla para guardar los datos
+CREATE TABLE `laboratorio4`.`temperatura` (
+  `idtemperatura` INT NOT NULL AUTO_INCREMENT,
+  `temperaturacel` VARCHAR(50) NOT NULL,
+   tiempo DATETIME NOT NULL,
+  PRIMARY KEY (`idtemperatura`));
+  
+  
+   -- Consultar datos de la tabla
+SELECT * FROM temperatura;
+SELECT now();
+  -- Insertar datos
+  
+INSERT INTO temperatura(temperaturacel, tiempo) VALUES(27.1, NOW());
+ 
